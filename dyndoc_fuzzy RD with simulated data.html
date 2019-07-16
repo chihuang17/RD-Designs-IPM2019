@@ -1,0 +1,373 @@
+﻿<!DOCTYPE HTML>
+<!DOCTYPE html PUBLIC "" ""><HTML lang="" lang="" xml:lang="" xmlns="http://www.w3.org/1999/xhtml"><HEAD><META 
+content="IE=11.0000" http-equiv="X-UA-Compatible">
+   
+<META charset="utf-8">   
+<META name="GENERATOR" content="MSHTML 11.00.10570.1001">   
+<META name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes"> 
+  <TITLE>ST_27a0_000001</TITLE>   
+<STYLE type="text/css">
+      code{white-space: pre-wrap;}
+      span.smallcaps{font-variant: small-caps;}
+      span.underline{text-decoration: underline;}
+      div.column{display: inline-block; vertical-align: top; width: 50%;}
+  </STYLE>
+   <!--[if lt IE 9]>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv-printshiv.min.js"></script>
+  <![endif]--> 
+</HEAD> 
+<BODY><LINK href="stmarkdown.css" rel="stylesheet" type="text/css"> 
+<SCRIPT type="text/x-mathjax-config">
+  MathJax.Hub.Config({tex2jax: {inlineMath: [['$','$'], ['\\(','\\)']]}});
+</SCRIPT>
+ 
+<SCRIPT src="dyndoc_fuzzy%20RD%20with%20simulated%20data.files/MathJax.js" type="text/javascript" async=""></SCRIPT>
+ 
+<H1 
+id="illustrate-two-sided-fuzzy-rd-design-and-analysis-with-simulated-data">Illustrate 
+Two-sided Fuzzy RD Design and Analysis with Simulated Data</H1>
+<P>I assume you have installed CCFT’s (2017) rdrobust program in Stata</P>
+<H2 id="data-generation-precess-dgp-of-simulated-data">Data Generation Precess 
+(DGP) of Simulated Data</H2>
+<PRE><CODE>. mat c=(1,.5\.5,1)
+
+. 
+. set seed 135790
+
+. 
+. drawnorm e pretest, n(10000) corr(c) clear
+(obs 10,000)
+
+. 
+. gen x=pretest-0 // x is the score (or running/forcing variable)
+
+. 
+. gen z=x&gt;0   // z is exogenous assignment (above-the-cutoff indicator) 
+
+. 
+. gen d=cond(uniform()&lt;=.8,z,1-z) // d is actually treated indicator
+
+. 
+. /* define y with potential outcomes y1 and y0 */
+. gen y1=1+x-x^2+e 
+
+. gen y0=0+x-x^2+e
+
+. gen y=y0+d*(y1-y0)
+
+. 
+. /* define triangular kernel weight */
+. gen w=max(0,1-abs(x)) 
+
+. </CODE></PRE>
+<H2 id="show-2-sided-noncompliance-z-d">Show 2-sided noncompliance: z != d</H2>
+<PRE><CODE>. list x z d y in 1/20  // note the relationship between z and d
+
+     +-------------------------------+
+     |         x   z   d           y |
+     |-------------------------------|
+  1. |  .7102892   1   1    .7563906 |
+  2. |  .6976223   1   1    1.969352 |
+  3. |  .0649558   1   1    .3766696 |
+  4. | -1.444992   0   0   -3.886496 |
+  5. | -.9752338   0   0   -2.670713 |
+     |-------------------------------|
+  6. | -1.172716   0   0   -4.250147 |
+  7. |   .272685   1   0   -.4552598 |
+  8. |  1.807087   1   1   -.8684002 |
+  9. |  .5526726   1   1    1.505635 |
+ 10. |  .0500316   1   1    .3856556 |
+     |-------------------------------|
+ 11. |  .1874922   1   1    1.654577 |
+ 12. | -.7227564   0   0   -2.569829 |
+ 13. |  1.105429   1   1    1.928718 |
+ 14. |  1.834123   1   1    .6918227 |
+ 15. |  1.321028   1   0    1.668036 |
+     |-------------------------------|
+ 16. |  2.140435   1   1   -.1622403 |
+ 17. |  .9039357   1   1    .4811184 |
+ 18. | -.3660635   0   1    .6377522 |
+ 19. |  1.905968   1   1    .0065615 |
+ 20. | -1.795722   0   0   -5.360397 |
+     +-------------------------------+
+
+. tab z d, row cell
+
++-----------------+
+| Key             |
+|-----------------|
+|    frequency    |
+| row percentage  |
+| cell percentage |
++-----------------+
+
+           |           d
+         z |         0          1 |     Total
+-----------+----------------------+----------
+         0 |     4,066        970 |     5,036 
+           |     80.74      19.26 |    100.00 
+           |     40.66       9.70 |     50.36 
+-----------+----------------------+----------
+         1 |       973      3,991 |     4,964 
+           |     19.60      80.40 |    100.00 
+           |      9.73      39.91 |     49.64 
+-----------+----------------------+----------
+     Total |     5,039      4,961 |    10,000 
+           |     50.39      49.61 |    100.00 
+           |     50.39      49.61 |    100.00 
+</CODE></PRE>
+<H2 id="plot-the-treatment-receipt-probability-discontinuity">Plot the 
+treatment-receipt probability discontinuity</H2>
+<PRE><CODE>. rdplot d x, c(0) nbins(10000) p(1)
+
+RD Plot with RD plot with manually set number of bins.
+
+         Cutoff c = 0 | Left of c  Right of c        Number of obs  =      10000
+----------------------+----------------------        Kernel         =    Uniform
+        Number of obs |      5036        4964
+   Eff. Number of obs |      5036        4964
+  Order poly. fit (p) |         1           1
+     BW poly. fit (h) |     4.018       4.353
+ Number of bins scale |     1.000       1.000
+
+Outcome: d. Running variable: x.
+---------------------------------------------
+                      | Left of c  Right of c
+----------------------+----------------------
+        Bins selected |     10000       10000
+   Average bin length |     0.000       0.000
+    Median bin length |     0.000       0.000
+----------------------+----------------------
+    IMSE-optimal bins |         6           5
+  Mimicking Var. bins |       102         156
+----------------------+----------------------
+Rel. to IMSE-optimal: | 
+        Implied scale |  1666.667    2000.000
+    WIMSE var. weight |     0.000       0.000
+    WIMSE bias weight |     1.000       1.000
+---------------------------------------------
+
+</CODE></PRE><FIGURE><IMG 
+alt="Probability Discontinuity Plot" src="dyndoc_fuzzy%20RD%20with%20simulated%20data.files/pdplot0.png"><FIGCAPTION>Probability 
+Discontinuity Plot</FIGCAPTION></FIGURE>
+<H2 id="plot-the-outcome-y-agaisnt-the-score-x">Plot the outcome Y agaisnt the 
+score X</H2>
+<PRE><CODE>. rdplot y x, c(0) nbins(10000)
+
+RD Plot with RD plot with manually set number of bins.
+
+         Cutoff c = 0 | Left of c  Right of c        Number of obs  =      10000
+----------------------+----------------------        Kernel         =    Uniform
+        Number of obs |      5036        4964
+   Eff. Number of obs |      5036        4964
+  Order poly. fit (p) |         4           4
+     BW poly. fit (h) |     4.018       4.353
+ Number of bins scale |     1.000       1.000
+
+Outcome: y. Running variable: x.
+---------------------------------------------
+                      | Left of c  Right of c
+----------------------+----------------------
+        Bins selected |     10000       10000
+   Average bin length |     0.000       0.000
+    Median bin length |     0.000       0.000
+----------------------+----------------------
+    IMSE-optimal bins |        47          25
+  Mimicking Var. bins |       470         110
+----------------------+----------------------
+Rel. to IMSE-optimal: | 
+        Implied scale |   212.766     400.000
+    WIMSE var. weight |     0.000       0.000
+    WIMSE bias weight |     1.000       1.000
+---------------------------------------------
+
+</CODE></PRE><FIGURE><IMG 
+alt="fuzzy rdplot of raw data" src="dyndoc_fuzzy%20RD%20with%20simulated%20data.files/rdplot.png"><FIGCAPTION>fuzzy 
+rdplot of raw data</FIGCAPTION></FIGURE>
+<H1 id="estimate-cace-of-2-sided-fuzzy-rd">Estimate CACE of 2-sided fuzzy 
+RD</H1>
+<H2 id="iv-version-see-wooldridge-2010-p.958">IV Version, see Wooldridge 2010, 
+p.958</H2>
+<PRE><CODE>. ivregress 2sls y (d=i.z) x c.x#i.z [pw=w], first
+(sum of wgt is   3.6837e+03)
+
+First-stage regressions
+-----------------------
+
+                                                Number of obs     =      6,838
+                                                F(   3,   6834)   =    1294.21
+                                                Prob &gt; F          =     0.0000
+                                                R-squared         =     0.3803
+                                                Adj R-squared     =     0.3800
+                                                Root MSE          =     0.3937
+
+------------------------------------------------------------------------------
+             |               Robust
+           d |      Coef.   Std. Err.      t    P&gt;|t|     [95% Conf. Interval]
+-------------+----------------------------------------------------------------
+           x |    .018478   .0300851     0.61   0.539    -.0404982    .0774543
+             |
+       z#c.x |
+          1  |  -.0104003   .0428784    -0.24   0.808    -.0944552    .0736547
+             |
+         1.z |   .6082987   .0202042    30.11   0.000     .5686922    .6479052
+       _cons |   .1927869   .0141263    13.65   0.000      .165095    .2204788
+------------------------------------------------------------------------------
+
+
+Instrumental variables (2SLS) regression          Number of obs   =      6,838
+                                                  Wald chi2(3)    =    7859.84
+                                                  Prob &gt; chi2     =     0.0000
+                                                  R-squared       =     0.5365
+                                                  Root MSE        =     .87554
+
+------------------------------------------------------------------------------
+             |               Robust
+           y |      Coef.   Std. Err.      z    P&gt;|z|     [95% Conf. Interval]
+-------------+----------------------------------------------------------------
+           d |   1.075301   .0738237    14.57   0.000     .9306094    1.219993
+           x |   2.177908   .0669534    32.53   0.000     2.046681    2.309134
+             |
+       z#c.x |
+          1  |    -1.5716   .0952269   -16.50   0.000    -1.758241   -1.384959
+             |
+       _cons |    .064885   .0422538     1.54   0.125    -.0179309    .1477009
+------------------------------------------------------------------------------
+Instrumented:  d
+Instruments:   x 1.z#c.x 1.z
+</CODE></PRE>
+<H2 id="frd-version-with-rdrobust">FRD Version with rdrobust</H2>
+<PRE><CODE>. rdrobust y x, fuzzy(d) kernel(triangular) h(1) bwselect(mserd)
+
+Fuzzy RD estimates using local polynomial regression.
+
+      Cutoff c = 0 | Left of c  Right of c            Number of obs =      10000
+-------------------+----------------------            BW type       =     Manual
+     Number of obs |      5036        4964            Kernel        = Triangular
+Eff. Number of obs |      3440        3398            VCE method    =         NN
+    Order est. (p) |         1           1
+    Order bias (q) |         2           2
+       BW est. (h) |     1.000       1.000
+       BW bias (b) |     1.000       1.000
+         rho (h/b) |     1.000       1.000
+
+First-stage estimates. Outcome: d. Running variable: x.
+--------------------------------------------------------------------------------
+            Method |   Coef.    Std. Err.    z     P&gt;|z|    [95% Conf. Interval]
+-------------------+------------------------------------------------------------
+      Conventional |   .6083     .02045   29.7414  0.000    .568212      .648386
+            Robust |     -          -     19.4864  0.000    .523558      .640656
+--------------------------------------------------------------------------------
+
+Treatment effect estimates. Outcome: y. Running variable: x. Treatment Status: d.
+--------------------------------------------------------------------------------
+            Method |   Coef.    Std. Err.    z     P&gt;|z|    [95% Conf. Interval]
+-------------------+------------------------------------------------------------
+      Conventional |  1.0753     .07311   14.7074  0.000    .932002       1.2186
+            Robust |     -          -     10.4572  0.000    .907913      1.32675
+--------------------------------------------------------------------------------
+
+. *The "conventional" coefficient of the Treatment effect estimates 
+. * is the FRD treatment effect.
+. /* Plot the point estimate */
+. rdplot y x if -e(h_l)&lt;= x &amp; x &lt;= e(h_r), binselect(esmv) kernel(triangular) h(1) p(1) ///
+&gt;   graph_options(title("Two-Sided Fuzzy RD Plot: Simulated Data") ///
+&gt;                 ytitle(Outcome Y) xtitle(Running Variable X))
+
+RD Plot with evenly spaced mimicking variance number of bins using spacings estimators.
+
+         Cutoff c = 0 | Left of c  Right of c        Number of obs  =       6838
+----------------------+----------------------        Kernel         = Triangular
+        Number of obs |      3440        3398
+   Eff. Number of obs |      3440        3398
+  Order poly. fit (p) |         1           1
+     BW poly. fit (h) |     1.000       1.000
+ Number of bins scale |     1.000       1.000
+
+Outcome: y. Running variable: x.
+---------------------------------------------
+                      | Left of c  Right of c
+----------------------+----------------------
+        Bins selected |       138          96
+   Average bin length |     0.007       0.010
+    Median bin length |     0.007       0.010
+----------------------+----------------------
+    IMSE-optimal bins |        16           9
+  Mimicking Var. bins |       138          96
+----------------------+----------------------
+Rel. to IMSE-optimal: | 
+        Implied scale |     8.625      10.667
+    WIMSE var. weight |     0.002       0.001
+    WIMSE bias weight |     0.998       0.999
+---------------------------------------------
+
+</CODE></PRE><FIGURE><IMG 
+alt="fuzzy rdplot h=1 p=1" src="dyndoc_fuzzy%20RD%20with%20simulated%20data.files/rdplot1.png"><FIGCAPTION>fuzzy 
+rdplot h=1 p=1</FIGCAPTION></FIGURE>
+<H3 id="what-if-we-let-rdrobust-do-the-data-driven-decisions-on-h-and-p">What if 
+we let rdrobust do the data-driven decisions on h and p?</H3>
+<PRE><CODE>. rdrobust y x if abs(x)&lt;=3.5, fuzzy(d)
+
+Fuzzy RD estimates using local polynomial regression.
+
+      Cutoff c = 0 | Left of c  Right of c            Number of obs =       9995
+-------------------+----------------------            BW type       =      mserd
+     Number of obs |      5034        4961            Kernel        = Triangular
+Eff. Number of obs |      1801        1786            VCE method    =         NN
+    Order est. (p) |         1           1
+    Order bias (q) |         2           2
+       BW est. (h) |     0.468       0.468
+       BW bias (b) |     1.285       1.285
+         rho (h/b) |     0.364       0.364
+
+First-stage estimates. Outcome: d. Running variable: x.
+--------------------------------------------------------------------------------
+            Method |   Coef.    Std. Err.    z     P&gt;|z|    [95% Conf. Interval]
+-------------------+------------------------------------------------------------
+      Conventional |  .57734     .02957   19.5216  0.000    .519375      .635304
+            Robust |     -          -     18.4210  0.000    .513391      .635646
+--------------------------------------------------------------------------------
+
+Treatment effect estimates. Outcome: y. Running variable: x. Treatment Status: d.
+--------------------------------------------------------------------------------
+            Method |   Coef.    Std. Err.    z     P&gt;|z|    [95% Conf. Interval]
+-------------------+------------------------------------------------------------
+      Conventional |  1.1005     .11153   9.8668   0.000    .881863      1.31906
+            Robust |     -          -     9.5007   0.000    .887244      1.34846
+--------------------------------------------------------------------------------
+
+. /* Plot this point estimate */
+. rdplot y x if -e(h_l)&lt;= x &amp; x &lt;= e(h_r), binselect(esmv) kernel(triangular) ///
+&gt;   graph_options(title("Two-Sided Fuzzy RD Plot: Simulated Data") ///
+&gt;                 ytitle(Outcome Y) xtitle(Running Variable X))
+
+RD Plot with evenly spaced mimicking variance number of bins using spacings estimators.
+
+         Cutoff c = 0 | Left of c  Right of c        Number of obs  =       3587
+----------------------+----------------------        Kernel         = Triangular
+        Number of obs |      1801        1786
+   Eff. Number of obs |      1801        1785
+  Order poly. fit (p) |         4           4
+     BW poly. fit (h) |     0.467       0.467
+ Number of bins scale |     1.000       1.000
+
+Outcome: y. Running variable: x.
+---------------------------------------------
+                      | Left of c  Right of c
+----------------------+----------------------
+        Bins selected |        61          56
+   Average bin length |     0.008       0.008
+    Median bin length |     0.008       0.008
+----------------------+----------------------
+    IMSE-optimal bins |         9           6
+  Mimicking Var. bins |        61          56
+----------------------+----------------------
+Rel. to IMSE-optimal: | 
+        Implied scale |     6.778       9.333
+    WIMSE var. weight |     0.003       0.001
+    WIMSE bias weight |     0.997       0.999
+---------------------------------------------
+
+</CODE></PRE><FIGURE><IMG 
+alt="fuzzy rdplot data-driven" src="dyndoc_fuzzy%20RD%20with%20simulated%20data.files/rdplot2.png"><FIGCAPTION>fuzzy 
+rdplot data-driven</FIGCAPTION></FIGURE></BODY></HTML>
